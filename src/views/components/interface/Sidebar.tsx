@@ -19,12 +19,14 @@ import { useMediaQuery } from "@/hooks/general/useMediaQuery";
 interface SidebarProps {
   onSelectProfile: () => void;
   onSelectStartups: () => void;
+  onSelectApplications: () => void;  // Nueva prop para manejar las aplicaciones
   activeView?: string;
 }
 
 export default function Sidebar({ 
   onSelectProfile, 
   onSelectStartups,
+  onSelectApplications,  // Nuevo parámetro
   activeView = "startups"
 }: SidebarProps) {
   const pathname = usePathname();
@@ -52,14 +54,8 @@ export default function Sidebar({
     {
       icon: <Calendar size={20} />,
       label: "Convocatorias",
-      href: "/convocatorias",
-      active: pathname === "/convocatorias"
-    },
-    {
-      icon: <Mail size={20} />,
-      label: "Notificaciones",
-      href: "/notificaciones",
-      active: pathname === "/notificaciones"
+      onClick: onSelectApplications,  // Cambiado de href a onClick
+      active: activeView === "applications"  // Actualizado para usar activeView
     }
   ];
 

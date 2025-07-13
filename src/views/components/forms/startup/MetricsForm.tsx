@@ -14,22 +14,52 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { useState } from "react";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { useState, useEffect } from "react";
+import { Label } from "@/components/ui/label";
+import { Card, CardContent } from "@/components/ui/card";
+
+// Lista de códigos de moneda ISO 4217
+const currencyCodes = [
+  "USD", "EUR", "GBP", "JPY", "AUD", 
+  "CAD", "CHF", "CNY", "SEK", "NZD", 
+  "MXN", "SGD", "HKD", "NOK", "KRW", 
+  "TRY", "INR", "BRL", "ZAR", "PEN"
+];
 
 const metricsSchema = z.object({
-  etapa: z.string({
-    required_error: "Selecciona la etapa de tu startup",
+  // Ventas
+  hasHadSales: z.boolean({
+    required_error: "Este campo es obligatorio",
   }),
-  ingresosMensuales: z.string().regex(/^\d*$/, {
-    message: "Debe ser un número sin puntos ni comas",
-  }).optional().or(z.literal("")),
-  clientesActivos: z.string().regex(/^\d*$/, {
-    message: "Debe ser un número",
-  }).optional().or(z.literal("")),
-  metricaPrincipal: z.string().min(1, "Describe tu métrica principal"),
-  metricaSecundaria: z.string().optional().or(z.literal("")),
+  totalSalesAmount: z.string()
+    .regex(/^\d*$/, { message: "Debe ser un número entero" })
+    .optional()
+    .or(z.literal("")),
+  salesCurrency: z.string().length(3, { message: "Debe ser un código de 3 letras" }).optional(),
+  
+  // Piloto/Prueba
+  hasPilot: z.boolean({
+    required_error: "Este campo es obligatorio",
+  }),
+  pilotLink: z.string().url({ message: "Debe ser una URL válida" }).optional(),
+  solutionApplication: z.string().min(1, { message: "Este campo es obligatorio" }).optional(),
+  technologyUsed: z.string().min(1, { message: "Este campo es obligatorio" }),
+  
+  // Área tech
+  hasTechDepartment: z.boolean({
+    required_error: "Este campo es obligatorio",
+  }),
+  
+  // Inversión
+  hasReceivedInvestment: z.boolean({
+    required_error: "Este campo es obligatorio",
+  }),
+  investmentAmount: z.string()
+    .regex(/^\d*$/, { message: "Debe ser un número entero" })
+    .optional()
+    .or(z.literal("")),
+  investmentCurrency: z.string().length(3, { message: "Debe ser un código de 3 letras" }).optional(),
 });
 
 type MetricsFormValues = z.infer<typeof metricsSchema>;
@@ -45,13 +75,48 @@ export default function MetricsForm({ onSubmit, initialData }: MetricsFormProps)
   const form = useForm<MetricsFormValues>({
     resolver: zodResolver(metricsSchema),
     defaultValues: initialData || {
-      etapa: "",
-      ingresosMensuales: "",
-      clientesActivos: "",
-      metricaPrincipal: "",
-      metricaSecundaria: "",
+      hasHadSales: false,
+      hasPilot: false,
+      technologyUsed: "",
+      hasTechDepartment: false,
+      hasReceivedInvestment: false,
     },
   });
+
+  // Observar cambios en los campos condicionales
+  const watchHasHadSales = form.watch("hasHadSales");
+  const watchHasPilot = form.watch("hasPilot");
+  const watchHasReceivedInvestment = form.watch("hasReceivedInvestment");
+
+  // Efecto para manejar la validación condicional
+  useEffect(() => {
+    // Si tiene ventas, los campos de ventas son requeridos
+    if (watchHasHadSales) {
+      form.register("totalSalesAmount", { required: "Este campo es obligatorio" });
+      form.register("salesCurrency", { required: "Este campo es obligatorio" });
+    } else {
+      form.unregister("totalSalesAmount");
+      form.unregister("salesCurrency");
+    }
+
+    // Si tiene piloto, los campos de piloto son requeridos
+    if (watchHasPilot) {
+      form.register("pilotLink", { required: "Este campo es obligatorio" });
+      form.register("solutionApplication", { required: "Este campo es obligatorio" });
+    } else {
+      form.unregister("pilotLink");
+      form.unregister("solutionApplication");
+    }
+
+    // Si recibió inversión, los campos de inversión son requeridos
+    if (watchHasReceivedInvestment) {
+      form.register("investmentAmount", { required: "Este campo es obligatorio" });
+      form.register("investmentCurrency", { required: "Este campo es obligatorio" });
+    } else {
+      form.unregister("investmentAmount");
+      form.unregister("investmentCurrency");
+    }
+  }, [watchHasHadSales, watchHasPilot, watchHasReceivedInvestment, form]);
 
   const handleSubmit = (data: MetricsFormValues) => {
     setIsSubmitting(true);
@@ -61,6 +126,41 @@ export default function MetricsForm({ onSubmit, initialData }: MetricsFormProps)
       setIsSubmitting(false);
     }, 500);
   };
+
+  // Función de ayuda para renderizar campos de selección booleana
+  const renderBooleanField = (
+    name: "hasHadSales" | "hasPilot" | "hasTechDepartment" | "hasReceivedInvestment", 
+    label: string, 
+    description?: string
+  ) => (
+    <FormField
+      control={form.control}
+      name={name}
+      render={({ field }) => (
+        <FormItem className="space-y-2">
+          <FormLabel>{label}</FormLabel>
+          <FormControl>
+            <RadioGroup
+              onValueChange={(value) => field.onChange(value === "true")}
+              defaultValue={field.value ? "true" : "false"}
+              className="flex flex-row space-x-4"
+            >
+              <div className="flex items-center space-x-2">
+                <RadioGroupItem value="true" id={`${name}-yes`} />
+                <Label htmlFor={`${name}-yes`}>Sí</Label>
+              </div>
+              <div className="flex items-center space-x-2">
+                <RadioGroupItem value="false" id={`${name}-no`} />
+                <Label htmlFor={`${name}-no`}>No</Label>
+              </div>
+            </RadioGroup>
+          </FormControl>
+          {description && <FormDescription className="text-xs">{description}</FormDescription>}
+          <FormMessage />
+        </FormItem>
+      )}
+    />
+  );
 
   return (
     <div className="w-full max-w-3xl mx-auto space-y-4 sm:space-y-6">
@@ -73,114 +173,196 @@ export default function MetricsForm({ onSubmit, initialData }: MetricsFormProps)
       
       <div className="bg-card p-4 sm:p-6 rounded-lg shadow-sm border">
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4">
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <FormField
-                control={form.control}
-                name="etapa"
-                render={({ field }) => (
-                  <FormItem className="sm:col-span-2">
-                    <FormLabel>Etapa actual</FormLabel>
-                    <Select onValueChange={field.onChange} defaultValue={field.value}>
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Selecciona la etapa de tu startup" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        <SelectItem value="ideacion">Ideación</SelectItem>
-                        <SelectItem value="validacion">Validación</SelectItem>
-                        <SelectItem value="mvp">MVP / Prototipo</SelectItem>
-                        <SelectItem value="traccion">Tracción temprana</SelectItem>
-                        <SelectItem value="crecimiento">Crecimiento</SelectItem>
-                        <SelectItem value="expansion">Expansión</SelectItem>
-                      </SelectContent>
-                    </Select>
-                    <FormDescription>
-                      La etapa de desarrollo en la que se encuentra tu startup
-                    </FormDescription>
-                    <FormMessage />
-                  </FormItem>
+          <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-6">
+            {/* Sección de ventas */}
+            <div className="space-y-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {renderBooleanField(
+                  "hasHadSales", 
+                  "¿Ha tenido ventas?", 
+                  "Indica si tu startup ha generado ingresos por ventas"
                 )}
-              />
-              
+              </div>
+
+              {watchHasHadSales && (
+                <Card className="border-muted bg-muted/20">
+                  <CardContent className="p-3 sm:p-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <FormField
+                        control={form.control}
+                        name="totalSalesAmount"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Monto total de ventas desde fundación</FormLabel>
+                            <FormControl>
+                              <Input placeholder="Ej: 50000" {...field} />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      
+                      <FormField
+                        control={form.control}
+                        name="salesCurrency"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Moneda</FormLabel>
+                            <FormControl>
+                              <Input 
+                                placeholder="Ej: USD, EUR, PEN" 
+                                {...field} 
+                                maxLength={3}
+                                onChange={(e) => field.onChange(e.target.value.toUpperCase())}
+                              />
+                            </FormControl>
+                            <FormDescription className="text-xs">
+                              Formato ISO 4217 (USD, EUR, PEN)
+                            </FormDescription>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+            </div>
+
+            {/* Sección de piloto */}
+            <div className="space-y-4 pt-2 border-t">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {renderBooleanField(
+                  "hasPilot", 
+                  "¿Cuenta con piloto o prueba?",
+                  "Indica si tienes algún producto piloto o versión de prueba"
+                )}
+              </div>
+
+              {watchHasPilot && (
+                <Card className="border-muted bg-muted/20">
+                  <CardContent className="p-3 sm:p-4">
+                    <div className="grid grid-cols-1 gap-4">
+                      <FormField
+                        control={form.control}
+                        name="pilotLink"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Enlace de tu piloto o prueba</FormLabel>
+                            <FormControl>
+                              <Input placeholder="https://" {...field} />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      
+                      <FormField
+                        control={form.control}
+                        name="solutionApplication"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>¿Dónde se aplica la solución?</FormLabel>
+                            <FormControl>
+                              <Input placeholder="Ej: Sector financiero, educación..." {...field} />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+            </div>
+
+            {/* Tecnología utilizada - siempre visible */}
+            <div className="pt-2 border-t">
               <FormField
                 control={form.control}
-                name="ingresosMensuales"
+                name="technologyUsed"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Ingresos mensuales (USD)</FormLabel>
+                    <FormLabel>Tecnología utilizada</FormLabel>
                     <FormControl>
-                      <Input placeholder="Ej: 5000" {...field} />
+                      <Input placeholder="Ej: React, Node.js, Python..." {...field} />
                     </FormControl>
-                    <FormDescription>
-                      Promedio mensual de ingresos recurrentes
+                    <FormDescription className="text-xs">
+                      Describe las principales tecnologías que usa tu producto o servicio
                     </FormDescription>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              
-              <FormField
-                control={form.control}
-                name="clientesActivos"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Clientes/Usuarios activos</FormLabel>
-                    <FormControl>
-                      <Input placeholder="Ej: 250" {...field} />
-                    </FormControl>
-                    <FormDescription>
-                      Número actual de usuarios o clientes activos
-                    </FormDescription>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              
-              <FormField
-                control={form.control}
-                name="metricaPrincipal"
-                render={({ field }) => (
-                  <FormItem className="sm:col-span-2">
-                    <FormLabel>Métrica principal (KPI)</FormLabel>
-                    <FormControl>
-                      <Textarea 
-                        placeholder="Describe la métrica más importante para tu startup y su valor actual..." 
-                        className="min-h-[100px]" 
-                        {...field} 
-                      />
-                    </FormControl>
-                    <FormDescription>
-                      Por ejemplo: tasa de conversión, valor de vida del cliente, etc.
-                    </FormDescription>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              
-              <FormField
-                control={form.control}
-                name="metricaSecundaria"
-                render={({ field }) => (
-                  <FormItem className="sm:col-span-2">
-                    <FormLabel>Métricas secundarias (opcional)</FormLabel>
-                    <FormControl>
-                      <Textarea 
-                        placeholder="Describe otras métricas relevantes para tu startup..." 
-                        className="min-h-[100px]" 
-                        {...field} 
-                      />
-                    </FormControl>
                     <FormMessage />
                   </FormItem>
                 )}
               />
             </div>
+
+            {/* Sección de área tech */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2 border-t">
+              {renderBooleanField(
+                "hasTechDepartment", 
+                "¿Tiene área de desarrollo tech?",
+                "Indica si cuentas con un equipo o área dedicada al desarrollo tecnológico"
+              )}
+            </div>
+
+            {/* Sección de inversión */}
+            <div className="space-y-4 pt-2 border-t">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {renderBooleanField(
+                  "hasReceivedInvestment", 
+                  "¿Recibió inversión externa?",
+                  "Indica si tu startup ha recibido financiamiento externo"
+                )}
+              </div>
+
+              {watchHasReceivedInvestment && (
+                <Card className="border-muted bg-muted/20">
+                  <CardContent className="p-3 sm:p-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <FormField
+                        control={form.control}
+                        name="investmentAmount"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Monto</FormLabel>
+                            <FormControl>
+                              <Input placeholder="Ej: 100000" {...field} />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      
+                      <FormField
+                        control={form.control}
+                        name="investmentCurrency"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Moneda</FormLabel>
+                            <FormControl>
+                              <Input 
+                                placeholder="Ej: USD, EUR, PEN" 
+                                {...field} 
+                                maxLength={3}
+                                onChange={(e) => field.onChange(e.target.value.toUpperCase())}
+                              />
+                            </FormControl>
+                            <FormDescription className="text-xs">
+                              Formato ISO 4217 (USD, EUR, PEN)
+                            </FormDescription>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+            </div>
             
             <Button 
               type="submit" 
-              className="w-full mt-6" 
+              className="w-full mt-8" 
               disabled={isSubmitting}
             >
               {isSubmitting ? "Guardando..." : "Guardar métricas"}

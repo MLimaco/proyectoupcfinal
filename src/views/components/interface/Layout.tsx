@@ -9,9 +9,10 @@ import { cn } from "@/lib/utils";
 
 interface LayoutProps {
   children: ReactNode;
-  activeView?: string;
+  activeView?: "profile" | "startups" | "startup-detail" | "applications";
   onSelectProfile?: () => void;
   onSelectStartups?: () => void;
+  onSelectApplications?: () => void;
 }
 
 export default function Layout({
@@ -19,6 +20,7 @@ export default function Layout({
   activeView = "startups",
   onSelectProfile = () => {},
   onSelectStartups = () => {},
+  onSelectApplications = () => {},
 }: LayoutProps) {
   // Estado para manejo responsive
   const [isMounted, setIsMounted] = useState(false);
@@ -85,6 +87,7 @@ export default function Layout({
             activeView={activeView}
             onSelectProfile={onSelectProfile}
             onSelectStartups={onSelectStartups}
+            onSelectApplications={onSelectApplications}
           />
         </div>
 
@@ -111,6 +114,10 @@ export default function Layout({
               }}
               onSelectStartups={() => {
                 onSelectStartups();
+                setIsSidebarOpen(false);
+              }}
+              onSelectApplications={() => {
+                onSelectApplications();
                 setIsSidebarOpen(false);
               }}
             />
