@@ -50,10 +50,10 @@ const formSchema = z.object({
 
 type FormValues = z.infer<typeof formSchema>;
 
-export default function StartupProfilePage() {
+export default function ProfileForm() {
   const [isSubmitting, setIsSubmitting] = useState(false);
-//  const router = useRouter();
-  
+  //  const router = useRouter();
+
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -70,10 +70,10 @@ export default function StartupProfilePage() {
 
   function onSubmit(data: FormValues) {
     setIsSubmitting(true);
-    
+
     // Aquí puedes implementar la lógica para guardar los datos
     console.log(data);
-    
+
     // Simular proceso de envío
     setTimeout(() => {
       setIsSubmitting(false);
@@ -92,7 +92,7 @@ export default function StartupProfilePage() {
             Completa la información de tu emprendimiento
           </p>
         </div>
-        
+
         <div className="bg-card p-6 rounded-lg shadow-sm border">
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
@@ -111,7 +111,7 @@ export default function StartupProfilePage() {
                   </FormItem>
                 )}
               />
-              
+
               <FormField
                 control={form.control}
                 name="razonSocial"
@@ -125,7 +125,7 @@ export default function StartupProfilePage() {
                   </FormItem>
                 )}
               />
-              
+
               <FormField
                 control={form.control}
                 name="ruc"
@@ -139,7 +139,7 @@ export default function StartupProfilePage() {
                   </FormItem>
                 )}
               />
-              
+
               <FormField
                 control={form.control}
                 name="fechaFundacion"
@@ -155,7 +155,7 @@ export default function StartupProfilePage() {
                   </FormItem>
                 )}
               />
-              
+
               <FormField
                 control={form.control}
                 name="categoria"
@@ -164,8 +164,8 @@ export default function StartupProfilePage() {
                     <FormLabel>
                       Categoría <span className="text-destructive">*</span>
                     </FormLabel>
-                    <Select 
-                      onValueChange={field.onChange} 
+                    <Select
+                      onValueChange={field.onChange}
                       defaultValue={field.value}
                     >
                       <FormControl>
@@ -183,7 +183,7 @@ export default function StartupProfilePage() {
                   </FormItem>
                 )}
               />
-              
+
               <FormField
                 control={form.control}
                 name="web"
@@ -197,7 +197,7 @@ export default function StartupProfilePage() {
                   </FormItem>
                 )}
               />
-              
+
               <FormField
                 control={form.control}
                 name="descripcion"
@@ -207,9 +207,9 @@ export default function StartupProfilePage() {
                       Descripción corta <span className="text-destructive">*</span>
                     </FormLabel>
                     <FormControl>
-                      <Textarea 
-                        placeholder="Describe tu startup o proyecto (máx. 500 caracteres)" 
-                        {...field} 
+                      <Textarea
+                        placeholder="Describe tu startup o proyecto (máx. 500 caracteres)"
+                        {...field}
                         maxLength={500}
                         className="resize-none h-24"
                       />
@@ -221,7 +221,7 @@ export default function StartupProfilePage() {
                   </FormItem>
                 )}
               />
-              
+
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <FormField
                   control={form.control}
@@ -231,8 +231,8 @@ export default function StartupProfilePage() {
                       <FormLabel>
                         Etapa <span className="text-destructive">*</span>
                       </FormLabel>
-                      <Select 
-                        onValueChange={field.onChange} 
+                      <Select
+                        onValueChange={field.onChange}
                         defaultValue={field.value}
                       >
                         <FormControl>
@@ -249,7 +249,7 @@ export default function StartupProfilePage() {
                     </FormItem>
                   )}
                 />
-                
+
                 <FormField
                   control={form.control}
                   name="origen"
@@ -258,8 +258,8 @@ export default function StartupProfilePage() {
                       <FormLabel>
                         Origen <span className="text-destructive">*</span>
                       </FormLabel>
-                      <Select 
-                        onValueChange={field.onChange} 
+                      <Select
+                        onValueChange={field.onChange}
                         defaultValue={field.value}
                       >
                         <FormControl>
@@ -279,7 +279,7 @@ export default function StartupProfilePage() {
                   )}
                 />
               </div>
-              
+
               <FormField
                 control={form.control}
                 name="video"
@@ -293,30 +293,9 @@ export default function StartupProfilePage() {
                   </FormItem>
                 )}
               />
-              
-              <FormField
-                control={form.control}
-                name="razonIngreso"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>
-                      Razón para ingresar al programa <span className="text-destructive">*</span>
-                    </FormLabel>
-                    <FormControl>
-                      <Textarea 
-                        placeholder="¿Por qué quieres participar en este programa?" 
-                        {...field} 
-                        className="resize-none h-20"
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              
-              <Button 
-                type="submit" 
-                className="w-full" 
+              <Button
+                type="submit"
+                className="w-full"
                 disabled={isSubmitting}
               >
                 {isSubmitting ? "Enviando..." : "Completar registro"}
