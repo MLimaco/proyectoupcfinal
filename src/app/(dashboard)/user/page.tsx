@@ -8,16 +8,15 @@ import TabsNavigation from "@/views/components/interface/TabsNavigation";
 import StartupProfileForm from "@/views/components/forms/startup/ProfileForm";
 import ImpactForm from "@/views/components/forms/startup/ImpactForm";
 import MetricsForm from "@/views/components/forms/startup/MetricsForm";
-import FounderForm from "@/views/components/forms/startup/FounderForm";
 import MembersList from "@/views/components/dashboard/startup/MembersList";
-import { Button } from "@/components/ui/button"; // Importar el componente Button
+import ApplicationList from "@/views/components/forms/application/ApplicationList"; // Corregido el path
+import { Button } from "@/components/ui/button";
 
 // Definir las pestañas para la navegación de startup
 const startupTabs = [
     { id: "profile", label: "Perfil" },
     { id: "impact", label: "Impacto" },
     { id: "metrics", label: "Métricas" },
-    { id: "founder", label: "Fundador" },
     { id: "members", label: "Integrantes" }
 ];
 
@@ -48,7 +47,7 @@ export default function DashboardPage() {
     const [isMounted, setIsMounted] = useState(false);
 
     // Estados para controlar la navegación y visualización
-    const [activeView, setActiveView] = useState<"profile" | "startups" | "startup-detail">("startups");
+    const [activeView, setActiveView] = useState<"profile" | "startups" | "startup-detail" | "applications">("startups");
     const [selectedStartupId, setSelectedStartupId] = useState<string | null>(null);
     const [activeTab, setActiveTab] = useState<string>("profile");
 
@@ -65,6 +64,10 @@ export default function DashboardPage() {
     const handleSelectStartups = () => {
         setActiveView("startups");
         setSelectedStartupId(null);
+    };
+
+    const handleSelectApplications = () => {
+        setActiveView("applications");
     };
 
     const handleSelectStartup = (id: string) => {
@@ -116,10 +119,6 @@ export default function DashboardPage() {
                     />
                 );
 
-            // En la sección del caso "startup-detail" de tu renderContent:
-
-            // En el caso "startup-detail":
-
             case "startup-detail":
                 return (
                     <div className="space-y-6">
@@ -162,13 +161,6 @@ export default function DashboardPage() {
                                 onSubmit={(data) => console.log("Metrics data:", data)}
                             />
                         )}
-
-                        {activeTab === "founder" && (
-                            <FounderForm
-                                onSubmit={(data) => console.log("Founder data:", data)}
-                            />
-                        )}
-
                         {activeTab === "members" && (
                             <MembersList
                                 startupId={selectedStartupId || undefined}
@@ -176,7 +168,16 @@ export default function DashboardPage() {
                             />
                         )}
                     </div>
-                ); default:
+                );
+
+            case "applications":
+                return (
+                    <ApplicationList
+                        startupId={selectedStartupId || undefined}
+                    />
+                );
+
+            default:
                 return null;
         }
     };
@@ -192,9 +193,10 @@ export default function DashboardPage() {
 
     return (
         <Layout
-            activeView={activeView} // Pasamos la vista activa al Layout
+            activeView={activeView}
             onSelectProfile={handleSelectProfile}
             onSelectStartups={handleSelectStartups}
+            onSelectApplications={handleSelectApplications}
         >
             {renderContent()}
         </Layout>

@@ -14,6 +14,7 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useState } from "react";
 
@@ -27,6 +28,8 @@ const formSchema = z.object({
     .min(9, "El número debe tener al menos 9 dígitos")
     .regex(/^\d+$/, "El teléfono debe contener solo números"),
   correoLaureate: z.string().email("Debe ser un correo válido").optional().or(z.literal("")),
+  linkedin: z.string().url("Ingresa una URL válida de LinkedIn"),
+  biografia: z.string().min(10, "La biografía debe tener al menos 10 caracteres"),
   politicaPrivacidad: z.literal(true, {
     errorMap: () => ({ message: "Debes aceptar la política de privacidad" }),
   }),
@@ -48,6 +51,7 @@ export default function ProfileForm({
   isLoading = false 
 }: ProfileFormProps) {
   const [submitting, setSubmitting] = useState(false);
+  const [charCount, setCharCount] = useState(userData?.biografia?.length || 0);
   
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
@@ -57,6 +61,8 @@ export default function ProfileForm({
       dni: "",
       telefono: "",
       correoLaureate: "",
+      linkedin: "",
+      biografia: "",
       politicaPrivacidad: false,
     },
   });
@@ -69,7 +75,6 @@ export default function ProfileForm({
     }, 1000);
   };
 
-  // NOTA IMPORTANTE: La solución completa que corrige definitivamente el error
   return (
     <div>
       {/* Email del usuario fuera del Form */}
@@ -172,7 +177,57 @@ export default function ProfileForm({
             )}
           />
           
-          {/* CAMBIO IMPORTANTE: Modificar la estructura del checkbox de política */}
+          {/* Nuevo campo: LinkedIn */}
+          <FormField
+            control={form.control}
+            name="linkedin"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Perfil de LinkedIn <span className="text-destructive">*</span></FormLabel>
+                <FormControl>
+                  <Input placeholder="https://linkedin.com/in/username" {...field} />
+                </FormControl>
+                <FormDescription>
+                  URL completa del perfil de LinkedIn
+                </FormDescription>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          
+          {/* Nuevo campo: Biografía */}
+          <FormField
+            control={form.control}
+            name="biografia"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Biografía <span className="text-destructive">*</span></FormLabel>
+                <FormControl>
+                  <Textarea 
+                    placeholder="Breve descripción de tu experiencia y habilidades" 
+                    className="min-h-[120px] resize-none"
+                    {...field}
+                    onChange={(e) => {
+                      field.onChange(e);
+                      setCharCount(e.target.value.length);
+                    }}
+                  />
+                </FormControl>
+                <div className="flex justify-end">
+                  <span className={`text-xs ${
+                    charCount < 10 ? 'text-destructive' : 
+                    charCount > 300 ? 'text-amber-500' : 
+                    'text-muted-foreground'
+                  }`}>
+                    {charCount} caracteres
+                  </span>
+                </div>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          
+          {/* Checkbox de política de privacidad */}
           <FormField
             control={form.control}
             name="politicaPrivacidad"
@@ -185,7 +240,6 @@ export default function ProfileForm({
                   />
                 </FormControl>
                 <div className="space-y-1 leading-none">
-                  {/* CAMBIO: Usar label regular en lugar de FormLabel */}
                   <label className="text-sm font-medium">
                     Acepto la política de privacidad
                   </label>

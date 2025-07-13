@@ -7,6 +7,7 @@ import MembersForm from "@/views/components/forms/startup/MembersForm";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, Plus } from "lucide-react";
 import { Dialog, DialogContent, DialogTitle, DialogHeader } from "@/components/ui/dialog";
+import { useMediaQuery } from "@/hooks/general/useMediaQuery";
 
 // Datos mockup de integrantes para demostración
 const mockMembers = [
@@ -45,20 +46,35 @@ interface MembersListProps {
   onSubmit?: (data: any) => void;
 }
 
-export default function MembersList({ startupId, onSubmit }: MembersListProps) {
+export default function MembersList({ startupId, onSubmit = () => {} }: MembersListProps) {
   const [members, setMembers] = useState(mockMembers);
   const [showForm, setShowForm] = useState(false);
   const [editingMemberId, setEditingMemberId] = useState<string | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const isMobile = useMediaQuery("(max-width: 640px)");
+  
+  const editingMember = editingMemberId 
+    ? members.find(m => m.id === editingMemberId) 
+    : undefined;
 
   const handleAddMember = () => {
-    setEditingMemberId(null);
-    setShowForm(true);
+    if (isMobile) {
+      setEditingMemberId(null);
+      setShowForm(true);
+    } else {
+      setEditingMemberId(null);
+      setIsDialogOpen(true);
+    }
   };
 
   const handleEditMember = (id: string) => {
-    setEditingMemberId(id);
-    setShowForm(true);
+    if (isMobile) {
+      setEditingMemberId(id);
+      setShowForm(true);
+    } else {
+      setEditingMemberId(id);
+      setIsDialogOpen(true);
+    }
   };
 
   const handleDeleteMember = (id: string) => {
@@ -74,40 +90,40 @@ export default function MembersList({ startupId, onSubmit }: MembersListProps) {
     } else {
       // Añadir nuevo miembro
       const newMember = {
-        id: `${Date.now()}`,
+        id: `member-${Date.now()}`,
         ...data,
       };
       setMembers([...members, newMember]);
     }
     
     setShowForm(false);
-    if (onSubmit) onSubmit(data);
+    setIsDialogOpen(false);
+    setEditingMemberId(null);
+    onSubmit(members);
   };
 
-  // Si estamos mostrando el formulario
+  // Si estamos mostrando el formulario en modo móvil
   if (showForm) {
     return (
-      <div className="space-y-6">
+      <div className="space-y-3 sm:space-y-6">
         <div className="flex items-center">
           <Button
             variant="ghost"
             size="sm"
-            className="mr-2"
+            className="mr-2 h-7 px-2 text-xs sm:text-sm"
             onClick={() => setShowForm(false)}
           >
-            <ArrowLeft size={16} className="mr-1" />
-            Volver
+            <ArrowLeft size={14} className="mr-1 sm:mr-2" />
+            <span>Volver</span>
           </Button>
-          <h2 className="text-2xl font-bold">
+          <h2 className="text-lg sm:text-2xl font-bold">
             {editingMemberId ? "Editar integrante" : "Agregar integrante"}
           </h2>
         </div>
         
         <MembersForm 
           onSubmit={handleFormSubmit}
-          initialData={editingMemberId 
-            ? members.find(m => m.id === editingMemberId) 
-            : undefined}
+          initialData={editingMember}
         />
       </div>
     );
@@ -115,24 +131,14 @@ export default function MembersList({ startupId, onSubmit }: MembersListProps) {
 
   // Mostrar la lista de integrantes
   return (
-    <div className="space-y-6">
+    <div className="space-y-3 sm:space-y-6">
       <div className="flex justify-between items-center">
-        <h2 className="text-2xl font-bold">Integrantes del equipo</h2>
-        <Button 
-          onClick={() => setIsDialogOpen(true)}
-          className="hidden md:flex" // Oculto en móvil, visible en desktop
-        >
-          <Plus size={16} className="mr-1" />
-          Nuevo integrante
-        </Button>
+        <h2 className="text-lg sm:text-2xl font-bold">Integrantes del equipo</h2>
       </div>
       
-      {/* Grid responsivo para las tarjetas */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-        {/* Solo mostrar la tarjeta de Añadir en móvil */}
-        <div className="md:hidden">
+      {/* Grid responsivo para las tarjetas con menos gap en móvil */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-2 sm:gap-4">
           <AddMemberCard onClick={handleAddMember} />
-        </div>
         
         {/* Tarjetas de miembros existentes */}
         {members.map((member) => (
@@ -147,16 +153,18 @@ export default function MembersList({ startupId, onSubmit }: MembersListProps) {
 
       {/* Dialog para formulario en pantallas más grandes */}
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <DialogContent className="sm:max-w-[550px]">
-          <DialogHeader>
-            <DialogTitle>Agregar nuevo integrante</DialogTitle>
+        <DialogContent className="sm:max-w-[500px] p-0 max-h-[90vh] overflow-y-auto">
+          <DialogHeader className="p-4 sm:p-6 pb-0 sm:pb-0">
+            <DialogTitle>
+              {editingMemberId ? "Editar integrante" : "Agregar integrante"}
+            </DialogTitle>
           </DialogHeader>
-          <MembersForm 
-            onSubmit={(data) => {
-              handleFormSubmit(data);
-              setIsDialogOpen(false);
-            }}
-          />
+          <div className="p-4 sm:p-6 pt-2 sm:pt-2">
+            <MembersForm 
+              onSubmit={handleFormSubmit}
+              initialData={editingMember}
+            />
+          </div>
         </DialogContent>
       </Dialog>
     </div>
