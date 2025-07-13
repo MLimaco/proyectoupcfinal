@@ -14,449 +14,179 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useState } from "react";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { currencies } from "@/views/components/forms/currencies";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 
-const formSchema = z.object({
-  hasVentas: z.enum(["si", "no"], {
-    required_error: "Por favor selecciona una opción",
+const metricsSchema = z.object({
+  etapa: z.string({
+    required_error: "Selecciona la etapa de tu startup",
   }),
-  montoVentas: z.string().optional()
-    .refine((val) => !val || !isNaN(Number(val)), {
-      message: "Debe ser un número válido",
-    }),
-  monedaVentas: z.string().optional(),
-  
-  hasPiloto: z.enum(["si", "no"], {
-    required_error: "Por favor selecciona una opción",
-  }),
-  enlacePiloto: z.string().url("Debe ser una URL válida").optional().or(z.literal("")),
-  lugarAplicacion: z.string().optional(),
-  tecnologia: z.string().optional(),
-  
-  hasAreaTech: z.enum(["si", "no"], {
-    required_error: "Por favor selecciona una opción",
-  }),
-  
-  hasInversion: z.enum(["si", "no"], {
-    required_error: "Por favor selecciona una opción",
-  }),
-  montoInversion: z.string().optional()
-    .refine((val) => !val || !isNaN(Number(val)), {
-      message: "Debe ser un número válido",
-    }),
-  monedaInversion: z.string().optional(),
-}).refine((data) => {
-  // Si tiene ventas, debe tener monto y moneda
-  if (data.hasVentas === "si") {
-    return !!data.montoVentas && !!data.monedaVentas;
-  }
-  return true;
-}, {
-  message: "Si tienes ventas, debes especificar el monto y la moneda",
-  path: ["montoVentas"],
-}).refine((data) => {
-  // Si tiene piloto, debe tener los campos requeridos
-  if (data.hasPiloto === "si") {
-    return !!data.lugarAplicacion && !!data.tecnologia;
-  }
-  return true;
-}, {
-  message: "Debes completar la información del piloto",
-  path: ["lugarAplicacion"],
-}).refine((data) => {
-  // Si tiene inversión, debe tener monto y moneda
-  if (data.hasInversion === "si") {
-    return !!data.montoInversion && !!data.monedaInversion;
-  }
-  return true;
-}, {
-  message: "Si recibiste inversión, debes especificar el monto y la moneda",
-  path: ["montoInversion"],
+  ingresosMensuales: z.string().regex(/^\d*$/, {
+    message: "Debe ser un número sin puntos ni comas",
+  }).optional().or(z.literal("")),
+  clientesActivos: z.string().regex(/^\d*$/, {
+    message: "Debe ser un número",
+  }).optional().or(z.literal("")),
+  metricaPrincipal: z.string().min(1, "Describe tu métrica principal"),
+  metricaSecundaria: z.string().optional().or(z.literal("")),
 });
 
-type FormValues = z.infer<typeof formSchema>;
+type MetricsFormValues = z.infer<typeof metricsSchema>;
 
-export default function MetricsForm() {
+interface MetricsFormProps {
+  onSubmit: (data: MetricsFormValues) => void;
+  initialData?: Partial<MetricsFormValues>;
+}
+
+export default function MetricsForm({ onSubmit, initialData }: MetricsFormProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   
-  const form = useForm<FormValues>({
-    resolver: zodResolver(formSchema),
-    defaultValues: {
-      hasVentas: undefined,
-      montoVentas: "",
-      monedaVentas: "",
-      hasPiloto: undefined,
-      enlacePiloto: "",
-      lugarAplicacion: "",
-      tecnologia: "",
-      hasAreaTech: undefined,
-      hasInversion: undefined,
-      montoInversion: "",
-      monedaInversion: "",
+  const form = useForm<MetricsFormValues>({
+    resolver: zodResolver(metricsSchema),
+    defaultValues: initialData || {
+      etapa: "",
+      ingresosMensuales: "",
+      clientesActivos: "",
+      metricaPrincipal: "",
+      metricaSecundaria: "",
     },
-    mode: "onChange",
   });
 
-  const watchHasVentas = form.watch("hasVentas");
-  const watchHasPiloto = form.watch("hasPiloto");
-  const watchHasInversion = form.watch("hasInversion");
-
-  function onSubmit(data: FormValues) {
+  const handleSubmit = (data: MetricsFormValues) => {
     setIsSubmitting(true);
     
-    // Aquí implementarías la lógica para guardar los datos
-    console.log(data);
-    
     setTimeout(() => {
+      onSubmit(data);
       setIsSubmitting(false);
-      alert("Métricas registradas con éxito");
-    }, 1500);
-  }
+    }, 500);
+  };
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-background p-4">
-      <div className="w-full max-w-lg space-y-6">
-        <div className="text-center">
-          <h1 className="text-2xl font-bold">Métricas de tu Startup</h1>
-          <p className="text-sm text-muted-foreground mt-2">
-            Por favor, completa la información sobre las métricas de tu startup
-          </p>
-        </div>
-        
-        <div className="bg-card p-6 rounded-lg shadow-sm border">
-          <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-              {/* ¿Ha tenido ventas? */}
+    <div className="w-full max-w-3xl mx-auto space-y-4 sm:space-y-6">
+      <div className="text-center">
+        <h1 className="text-xl sm:text-2xl font-bold">Métricas de tu Startup</h1>
+        <p className="text-sm text-muted-foreground mt-1">
+          Comparte los indicadores clave de desempeño de tu startup
+        </p>
+      </div>
+      
+      <div className="bg-card p-4 sm:p-6 rounded-lg shadow-sm border">
+        <Form {...form}>
+          <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <FormField
                 control={form.control}
-                name="hasVentas"
+                name="etapa"
                 render={({ field }) => (
-                  <FormItem className="space-y-3">
-                    <FormLabel>¿Ha tenido ventas?</FormLabel>
-                    <FormControl>
-                      <RadioGroup
-                        onValueChange={field.onChange}
-                        defaultValue={field.value}
-                        className="flex flex-row space-x-4"
-                      >
-                        <FormItem className="flex items-center space-x-2 space-y-0">
-                          <FormControl>
-                            <RadioGroupItem value="si" />
-                          </FormControl>
-                          <FormLabel className="font-normal cursor-pointer">
-                            Sí
-                          </FormLabel>
-                        </FormItem>
-                        <FormItem className="flex items-center space-x-2 space-y-0">
-                          <FormControl>
-                            <RadioGroupItem value="no" />
-                          </FormControl>
-                          <FormLabel className="font-normal cursor-pointer">
-                            No
-                          </FormLabel>
-                        </FormItem>
-                      </RadioGroup>
-                    </FormControl>
+                  <FormItem className="sm:col-span-2">
+                    <FormLabel>Etapa actual</FormLabel>
+                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Selecciona la etapa de tu startup" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="ideacion">Ideación</SelectItem>
+                        <SelectItem value="validacion">Validación</SelectItem>
+                        <SelectItem value="mvp">MVP / Prototipo</SelectItem>
+                        <SelectItem value="traccion">Tracción temprana</SelectItem>
+                        <SelectItem value="crecimiento">Crecimiento</SelectItem>
+                        <SelectItem value="expansion">Expansión</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <FormDescription>
+                      La etapa de desarrollo en la que se encuentra tu startup
+                    </FormDescription>
                     <FormMessage />
                   </FormItem>
                 )}
               />
               
-              {/* Campos condicionales para ventas */}
-              {watchHasVentas === "si" && (
-                <div className="grid grid-cols-2 gap-4">
-                  <FormField
-                    control={form.control}
-                    name="montoVentas"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Monto total de ventas</FormLabel>
-                        <FormControl>
-                          <Input 
-                            type="number" 
-                            placeholder="Ej: 10000"
-                            {...field}
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  
-                  <FormField
-                    control={form.control}
-                    name="monedaVentas"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Moneda</FormLabel>
-                        <Select 
-                          onValueChange={field.onChange} 
-                          defaultValue={field.value}
-                        >
-                          <FormControl>
-                            <SelectTrigger>
-                              <SelectValue placeholder="Selecciona" />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            {currencies.map((currency) => (
-                              <SelectItem 
-                                key={currency.code} 
-                                value={currency.code}
-                              >
-                                {currency.code} - {currency.name}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </div>
-              )}
-              
-              {/* ¿Cuenta con piloto o prueba? */}
               <FormField
                 control={form.control}
-                name="hasPiloto"
+                name="ingresosMensuales"
                 render={({ field }) => (
-                  <FormItem className="space-y-3">
-                    <FormLabel>¿Cuenta con piloto o prueba?</FormLabel>
+                  <FormItem>
+                    <FormLabel>Ingresos mensuales (USD)</FormLabel>
                     <FormControl>
-                      <RadioGroup
-                        onValueChange={field.onChange}
-                        defaultValue={field.value}
-                        className="flex flex-row space-x-4"
-                      >
-                        <FormItem className="flex items-center space-x-2 space-y-0">
-                          <FormControl>
-                            <RadioGroupItem value="si" />
-                          </FormControl>
-                          <FormLabel className="font-normal cursor-pointer">
-                            Sí
-                          </FormLabel>
-                        </FormItem>
-                        <FormItem className="flex items-center space-x-2 space-y-0">
-                          <FormControl>
-                            <RadioGroupItem value="no" />
-                          </FormControl>
-                          <FormLabel className="font-normal cursor-pointer">
-                            No
-                          </FormLabel>
-                        </FormItem>
-                      </RadioGroup>
+                      <Input placeholder="Ej: 5000" {...field} />
                     </FormControl>
+                    <FormDescription>
+                      Promedio mensual de ingresos recurrentes
+                    </FormDescription>
                     <FormMessage />
                   </FormItem>
                 )}
               />
               
-              {/* Campos condicionales para piloto */}
-              {watchHasPiloto === "si" && (
-                <div className="space-y-4">
-                  <FormField
-                    control={form.control}
-                    name="enlacePiloto"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Enlace de tu piloto o prueba</FormLabel>
-                        <FormControl>
-                          <Input 
-                            type="url" 
-                            placeholder="https://..."
-                            {...field}
-                          />
-                        </FormControl>
-                        <FormDescription>
-                          Comparte un enlace donde podamos ver tu piloto
-                        </FormDescription>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  
-                  <FormField
-                    control={form.control}
-                    name="lugarAplicacion"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>¿Dónde se aplica la solución?</FormLabel>
-                        <FormControl>
-                          <Input 
-                            placeholder="Ej: Lima, Perú / Online / Sector educativo"
-                            {...field}
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  
-                  <FormField
-                    control={form.control}
-                    name="tecnologia"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Tecnología utilizada</FormLabel>
-                        <FormControl>
-                          <Input 
-                            placeholder="Ej: React, Node.js, Python, IA"
-                            {...field}
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </div>
-              )}
-              
-              {/* ¿Tiene área de desarrollo tech? */}
               <FormField
                 control={form.control}
-                name="hasAreaTech"
+                name="clientesActivos"
                 render={({ field }) => (
-                  <FormItem className="space-y-3">
-                    <FormLabel>¿Tiene área de desarrollo tech?</FormLabel>
+                  <FormItem>
+                    <FormLabel>Clientes/Usuarios activos</FormLabel>
                     <FormControl>
-                      <RadioGroup
-                        onValueChange={field.onChange}
-                        defaultValue={field.value}
-                        className="flex flex-row space-x-4"
-                      >
-                        <FormItem className="flex items-center space-x-2 space-y-0">
-                          <FormControl>
-                            <RadioGroupItem value="si" />
-                          </FormControl>
-                          <FormLabel className="font-normal cursor-pointer">
-                            Sí
-                          </FormLabel>
-                        </FormItem>
-                        <FormItem className="flex items-center space-x-2 space-y-0">
-                          <FormControl>
-                            <RadioGroupItem value="no" />
-                          </FormControl>
-                          <FormLabel className="font-normal cursor-pointer">
-                            No
-                          </FormLabel>
-                        </FormItem>
-                      </RadioGroup>
+                      <Input placeholder="Ej: 250" {...field} />
                     </FormControl>
+                    <FormDescription>
+                      Número actual de usuarios o clientes activos
+                    </FormDescription>
                     <FormMessage />
                   </FormItem>
                 )}
               />
               
-              {/* ¿Recibió inversión externa? */}
               <FormField
                 control={form.control}
-                name="hasInversion"
+                name="metricaPrincipal"
                 render={({ field }) => (
-                  <FormItem className="space-y-3">
-                    <FormLabel>¿Recibió inversión externa?</FormLabel>
+                  <FormItem className="sm:col-span-2">
+                    <FormLabel>Métrica principal (KPI)</FormLabel>
                     <FormControl>
-                      <RadioGroup
-                        onValueChange={field.onChange}
-                        defaultValue={field.value}
-                        className="flex flex-row space-x-4"
-                      >
-                        <FormItem className="flex items-center space-x-2 space-y-0">
-                          <FormControl>
-                            <RadioGroupItem value="si" />
-                          </FormControl>
-                          <FormLabel className="font-normal cursor-pointer">
-                            Sí
-                          </FormLabel>
-                        </FormItem>
-                        <FormItem className="flex items-center space-x-2 space-y-0">
-                          <FormControl>
-                            <RadioGroupItem value="no" />
-                          </FormControl>
-                          <FormLabel className="font-normal cursor-pointer">
-                            No
-                          </FormLabel>
-                        </FormItem>
-                      </RadioGroup>
+                      <Textarea 
+                        placeholder="Describe la métrica más importante para tu startup y su valor actual..." 
+                        className="min-h-[100px]" 
+                        {...field} 
+                      />
                     </FormControl>
+                    <FormDescription>
+                      Por ejemplo: tasa de conversión, valor de vida del cliente, etc.
+                    </FormDescription>
                     <FormMessage />
                   </FormItem>
                 )}
               />
               
-              {/* Campos condicionales para inversión */}
-              {watchHasInversion === "si" && (
-                <div className="grid grid-cols-2 gap-4">
-                  <FormField
-                    control={form.control}
-                    name="montoInversion"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Monto de inversión</FormLabel>
-                        <FormControl>
-                          <Input 
-                            type="number" 
-                            placeholder="Ej: 50000"
-                            {...field}
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  
-                  <FormField
-                    control={form.control}
-                    name="monedaInversion"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Moneda</FormLabel>
-                        <Select 
-                          onValueChange={field.onChange} 
-                          defaultValue={field.value}
-                        >
-                          <FormControl>
-                            <SelectTrigger>
-                              <SelectValue placeholder="Selecciona" />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            {currencies.map((currency) => (
-                              <SelectItem 
-                                key={currency.code} 
-                                value={currency.code}
-                              >
-                                {currency.code} - {currency.name}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </div>
-              )}
-              
-              <Button 
-                type="submit" 
-                className="w-full" 
-                disabled={isSubmitting}
-              >
-                {isSubmitting ? "Enviando..." : "Completar registro"}
-              </Button>
-            </form>
-          </Form>
-        </div>
+              <FormField
+                control={form.control}
+                name="metricaSecundaria"
+                render={({ field }) => (
+                  <FormItem className="sm:col-span-2">
+                    <FormLabel>Métricas secundarias (opcional)</FormLabel>
+                    <FormControl>
+                      <Textarea 
+                        placeholder="Describe otras métricas relevantes para tu startup..." 
+                        className="min-h-[100px]" 
+                        {...field} 
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
+            
+            <Button 
+              type="submit" 
+              className="w-full mt-6" 
+              disabled={isSubmitting}
+            >
+              {isSubmitting ? "Guardando..." : "Guardar métricas"}
+            </Button>
+          </form>
+        </Form>
       </div>
     </div>
   );

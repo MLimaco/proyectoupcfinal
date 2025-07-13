@@ -38,44 +38,48 @@ export default function MemberCard({
 
   return (
     <Card className={cn("h-full flex flex-col transition-all hover:shadow-md", className)}>
-      <CardContent className="pt-6 pb-2 flex flex-col items-center text-center">
-        <Avatar className="h-20 w-20 mb-4">
+      {/* Usar mismo padding que AddMemberCard */}
+      <CardContent className="py-3 sm:py-6 flex flex-col items-center justify-center text-center">
+        {/* Avatar más pequeño en móvil, igual que en AddMemberCard */}
+        <Avatar className="h-12 w-12 sm:h-20 sm:w-20 mb-2 sm:mb-4">
           {member.avatar ? (
             <AvatarImage src={member.avatar} alt={member.nombre} />
           ) : (
-            <AvatarFallback className="text-lg bg-primary/10 text-primary">
+            <AvatarFallback className="text-base sm:text-lg bg-primary/10 text-primary">
               {getInitials(member.nombre)}
             </AvatarFallback>
           )}
         </Avatar>
         
-        <h3 className="font-medium text-lg line-clamp-1">{member.nombre}</h3>
-        <Badge variant="outline" className="mt-1 mb-2">
+        {/* Texto más pequeño y menos espacio */}
+        <h3 className="font-medium text-sm sm:text-lg line-clamp-1">{member.nombre}</h3>
+        <Badge variant="outline" className="mt-0.5 sm:mt-1 mb-1 sm:mb-2 text-xs sm:text-sm px-1.5 sm:px-2 py-0 sm:py-0.5">
           {member.cargo}
         </Badge>
-        <p className="text-sm text-muted-foreground line-clamp-1">{member.email}</p>
-      </CardContent>
+        <p className="text-xs text-muted-foreground line-clamp-1">{member.email}</p>
       
-      <CardFooter className="pt-2 pb-4 flex justify-center gap-2 mt-auto">
-        <Button
-          variant="ghost"
-          size="sm"
-          className="h-8 px-2 text-muted-foreground hover:text-foreground"
-          onClick={() => onEdit(member.id)}
-        >
-          <Edit size={16} className="mr-1" />
-          Editar
-        </Button>
-        <Button
-          variant="ghost"
-          size="sm"
-          className="h-8 px-2 text-destructive hover:text-destructive/80"
-          onClick={() => onDelete(member.id)}
-        >
-          <Trash2 size={16} className="mr-1" />
-          Eliminar
-        </Button>
-      </CardFooter>
+        {/* Mover los botones dentro del CardContent para unificar espaciado */}
+        <div className="flex flex-row justify-center gap-1 sm:gap-2 mt-2 sm:mt-4">
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-7 sm:h-9 w-auto px-2 text-xs sm:text-sm text-muted-foreground hover:text-foreground"
+            onClick={() => onEdit(member.id)}
+          >
+            <Edit size={14} className="mr-1 sm:mr-1.5" />
+            Editar
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-7 sm:h-9 w-auto px-2 text-xs sm:text-sm text-destructive hover:text-destructive/80"
+            onClick={() => onDelete(member.id)}
+          >
+            <Trash2 size={14} className="mr-1 sm:mr-1.5" />
+            Eliminar
+          </Button>
+        </div>
+      </CardContent>
     </Card>
   );
 }

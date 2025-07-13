@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { ChevronLeft, ChevronRight } from "lucide-react";
@@ -30,114 +30,147 @@ export default function TabsNavigation({
   const [showControls, setShowControls] = useState(false);
   const [containerWidth, setContainerWidth] = useState(0);
   const [listWidth, setListWidth] = useState(0);
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
   
+  // Medir el contenedor y la lista para determinar si se necesitan controles
   useEffect(() => {
-    // Medir si los tabs necesitan controles de desplazamiento
-    const container = document.querySelector("#tabs-container");
-    const list = document.querySelector("#tabs-list");
-    
-    if (container && list) {
-      setContainerWidth(container.clientWidth);
-      setListWidth(list.scrollWidth);
-      setShowControls(list.scrollWidth > container.clientWidth);
-      
-      // Observer para detectar cambios de tamaño
-      const resizeObserver = new ResizeObserver(entries => {
-        for (let entry of entries) {
-          if (entry.target === container) {
-            setContainerWidth(entry.contentRect.width);
-            setShowControls(list.scrollWidth > entry.contentRect.width);
-          }
+    const updateMeasurements = () => {
+      if (scrollContainerRef.current) {
+        const container = scrollContainerRef.current;
+        const list = container.querySelector('[role="tablist"]');
+        
+        if (container && list) {
+          const containerWidth = container.clientWidth;
+          const listWidth = list.scrollWidth;
+          
+          setContainerWidth(containerWidth);
+          setListWidth(listWidth);
+          setShowControls(listWidth > containerWidth);
         }
-      });
-      
-      resizeObserver.observe(container);
-      return () => {
-        resizeObserver.disconnect();
-      };
+      }
+    };
+
+    // Medir al montar y cuando cambia el tamaño
+    updateMeasurements();
+    
+    const resizeObserver = new ResizeObserver(() => {
+      updateMeasurements();
+    });
+    
+    if (scrollContainerRef.current) {
+      resizeObserver.observe(scrollContainerRef.current);
     }
+    
+    return () => {
+      resizeObserver.disconnect();
+    };
   }, [tabs]);
   
-const handleTabChange = (tab: string) => {
-  setActiveTab(tab);
-  if (onTabChange) {
-    // Asegúrate de que esto se llame con el valor correcto
-    console.log("Tab changed to:", tab); // Para depuración
-    onTabChange(tab);
-  }
-};
+  const handleTabChange = (tab: string) => {
+    setActiveTab(tab);
+    if (onTabChange) onTabChange(tab);
+    
+    // Asegurar que el tab activo sea visible
+    setTimeout(() => {
+      if (scrollContainerRef.current) {
+        const container = scrollContainerRef.current;
+        const activeTabElement = container.querySelector(`[data-state="active"]`);
+        
+        if (activeTabElement) {
+          const tabRect = activeTabElement.getBoundingClientRect();
+          const containerRect = container.getBoundingClientRect();
+          
+          // Si el tab activo está fuera de la vista, centrarlo
+          if (tabRect.left < containerRect.left || tabRect.right > containerRect.right) {
+            const centerPosition = tabRect.left - containerRect.left - containerRect.width / 2 + tabRect.width / 2;
+            container.scrollTo({
+              left: container.scrollLeft + centerPosition,
+              behavior: "smooth"
+            });
+          }
+        }
+      }
+    }, 100);
+  };
   
   const scrollLeft = () => {
-    const container = document.querySelector("#tabs-container");
-    if (container) {
-      const newPosition = Math.max(0, scrollPosition - 200);
-      container.scrollTo({ left: newPosition, behavior: "smooth" });
+    if (scrollContainerRef.current) {
+      const container = scrollContainerRef.current;
+      const newPosition = Math.max(0, scrollPosition - 150);
+      container.scrollTo({
+        left: newPosition,
+        behavior: "smooth"
+      });
       setScrollPosition(newPosition);
     }
   };
   
   const scrollRight = () => {
-    const container = document.querySelector("#tabs-container");
-    if (container) {
+    if (scrollContainerRef.current) {
+      const container = scrollContainerRef.current;
       const maxScroll = container.scrollWidth - container.clientWidth;
-      const newPosition = Math.min(maxScroll, scrollPosition + 200);
-      container.scrollTo({ left: newPosition, behavior: "smooth" });
+      const newPosition = Math.min(maxScroll, scrollPosition + 150);
+      container.scrollTo({
+        left: newPosition,
+        behavior: "smooth"
+      });
       setScrollPosition(newPosition);
     }
   };
 
-  return (
-    <div className="relative flex items-center">
-      {showControls && scrollPosition > 0 && (
-        <Button
-          variant="ghost"
-          size="icon"
-          className="absolute left-0 z-10 h-7 w-7 rounded-full bg-background shadow-sm"
-          onClick={scrollLeft}
-        >
-          <ChevronLeft size={16} />
-        </Button>
-      )}
-      
-      <ScrollArea 
-        id="tabs-container"
-        className="w-full max-w-full"
-        onScroll={(e) => setScrollPosition(e.currentTarget.scrollLeft)}
-        scrollHideDelay={0}
+return (
+  <div className="relative mx-2 sm:mx-0">
+    {/* Botones de navegación */}
+    {showControls && scrollPosition > 0 && (
+      <Button
+        variant="ghost"
+        size="icon"
+        className="absolute left-0 top-1/2 -translate-y-1/2 z-10 h-7 w-7 rounded-full bg-background shadow-sm"
+        onClick={scrollLeft}
+        aria-label="Scroll left"
       >
-        <Tabs
-          defaultValue={activeTab}
-          value={activeTab}
-          className="w-full"
-          onValueChange={handleTabChange}
-        >
-          <TabsList id="tabs-list" className="flex h-9 overflow-x-auto scrollbar-hide">
-            {tabs.map((tab) => (
-              <TabsTrigger
-                key={tab.id}
-                value={tab.id}
-                className={cn(
-                  "flex-shrink-0 px-4 data-[state=active]:bg-muted",
-                  "whitespace-nowrap text-sm"
-                )}
-              >
-                {tab.label}
-              </TabsTrigger>
-            ))}
-          </TabsList>
-        </Tabs>
-      </ScrollArea>
+        <ChevronLeft size={16} />
+      </Button>
+    )}
+    
+    {/* Contenedor con scroll horizontal */}
+    <div 
+      ref={scrollContainerRef}
+      className="overflow-x-auto scrollbar-hide pb-1"
+      onScroll={(e) => setScrollPosition(e.currentTarget.scrollLeft)}
+    >
+      <Tabs
+        defaultValue={activeTab}
+        value={activeTab}
+        className="w-full"
+        onValueChange={handleTabChange}
+      >
+        <TabsList className="h-9 bg-transparent">
+          {tabs.map((tab) => (
+            <TabsTrigger
+              key={tab.id}
+              value={tab.id}
+              className="px-3 sm:px-4 h-9 text-xs sm:text-sm data-[state=active]:bg-background data-[state=active]:shadow-sm data-[state=active]:text-foreground whitespace-nowrap"
+            >
+              {tab.label}
+            </TabsTrigger>
+          ))}
+        </TabsList>
+      </Tabs>
+    </div>
       
-      {showControls && scrollPosition < listWidth - containerWidth && (
+      {showControls && scrollPosition < (listWidth - containerWidth - 10) && (
         <Button
           variant="ghost"
           size="icon"
-          className="absolute right-0 z-10 h-7 w-7 rounded-full bg-background shadow-sm"
+          className="absolute right-0 top-1/2 -translate-y-1/2 z-10 h-7 w-7 rounded-full bg-background shadow-sm"
           onClick={scrollRight}
+          aria-label="Scroll right"
         >
           <ChevronRight size={16} />
         </Button>
       )}
+      
     </div>
   );
 }
