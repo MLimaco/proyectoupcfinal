@@ -9,7 +9,7 @@ import StartupProfileForm from "@/views/components/forms/startup/ProfileForm";
 import ImpactForm from "@/views/components/forms/startup/ImpactForm";
 import MetricsForm from "@/views/components/forms/startup/MetricsForm";
 import FounderForm from "@/views/components/forms/startup/FounderForm";
-import MembersForm from "@/views/components/forms/startup/MembersForm";
+import MembersList from "@/views/components/dashboard/startup/MembersList";
 import { Button } from "@/components/ui/button"; // Importar el componente Button
 
 // Definir las pestañas para la navegación de startup
@@ -118,6 +118,8 @@ export default function DashboardPage() {
 
             // En la sección del caso "startup-detail" de tu renderContent:
 
+            // En el caso "startup-detail":
+
             case "startup-detail":
                 return (
                     <div className="space-y-6">
@@ -142,7 +144,7 @@ export default function DashboardPage() {
                             onTabChange={handleTabChange}
                         />
 
-                        {/* Renderiza el formulario apropiado según el activeTab */}
+                        {/* Contenido según el tab activo */}
                         {activeTab === "profile" && (
                             <StartupProfileForm
                                 onSubmit={(data) => console.log("Profile data:", data)}
@@ -168,13 +170,13 @@ export default function DashboardPage() {
                         )}
 
                         {activeTab === "members" && (
-                            <MembersForm
+                            <MembersList
+                                startupId={selectedStartupId || undefined}
                                 onSubmit={(data) => console.log("Members data:", data)}
                             />
                         )}
                     </div>
-                ); 
-            default:
+                ); default:
                 return null;
         }
     };
