@@ -1,6 +1,9 @@
 import NextAuth from "next-auth";
 import Google from "next-auth/providers/google";
 import type { DefaultSession } from "next-auth";
+import { PrismaClient } from "@/generated/prisma";
+
+const prisma = new PrismaClient();
 
 // Extender tipos para Auth.js v5
 declare module "next-auth" {
@@ -35,20 +38,29 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       // Si es la primera vez que se genera el token (login)
       if (user && account) {
         try {
-          // TEMPORAL: Simular existencia del usuario basado en el email
-          const isRegistered = false; // Por defecto, asumir que es un usuario nuevo
-
-          // Determinar el rol basado en email específico
+          // Verificar si el usuario existe en la base de datos
+          const dbUser = await prisma.user.findUnique({
+            where: { email: user.email! },
+          });
+          
+          // Determinar si está registrado
+          const isRegistered = !!dbUser?.isRegistered;
+          
+          // Determinar el rol basado en la base de datos o email específico
           const isAdmin = user.email === "m.limaco0191@gmail.com";
+          const role = dbUser?.role || (isAdmin ? "admin" : "usuario");
 
           // Añadir información adicional al token
-          token.role = isAdmin ? "admin" : "user";
+          token.role = role;
           token.isRegistered = isRegistered;
-          token.userId = "temp-user-id"; // ID temporal
+          token.userId = dbUser?.id;
 
           console.log("Token generado:", token); // Depuración
         } catch (error) {
           console.error("Error verificando usuario:", error);
+          // Si hay error, establecer valores predeterminados
+          token.role = user.email === "m.limaco0191@gmail.com" ? "admin" : "usuario";
+          token.isRegistered = false;
         }
       }
 
@@ -74,9 +86,35 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     // Registrar login/signup en callback signIn
     async signIn({ user, account }) {
       try {
-        // TEMPORAL: Solo registrar en consola
-        console.log("Usuario autenticado:", user.email);
-        console.log("Proveedor:", account?.provider);
+        let dbUser;
+        
+        try {
+          // Buscar usuario en la base de datos
+          dbUser = await prisma.user.findUnique({
+            where: { email: user.email! },
+          });
+        } catch (dbError) {
+          console.error("Error buscando usuario en DB:", dbError);
+        }
+
+        // Determinar si es login o registro inicial
+        const action = dbUser ? 'login' : 'signup';
+        
+        try {
+          // Registrar evento de sesión
+          await prisma.sessionLog.create({
+            data: {
+              userId: dbUser?.id || 'new_user',
+              email: user.email!,
+              action,
+              provider: account?.provider || 'unknown',
+            }
+          });
+          
+          console.log(`${action.toUpperCase()} registrado para usuario:`, user.email);
+        } catch (logError) {
+          console.error("Error registrando sesión:", logError);
+        }
       } catch (error) {
         console.error(`Error en el proceso de autenticación:`, error);
       }

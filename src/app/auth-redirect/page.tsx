@@ -9,14 +9,33 @@ export default function AuthRedirect() {
   const router = useRouter();
 
   useEffect(() => {
-    if (status === "loading") return;
+    const checkUserStatus = async () => {
+      if (status === "loading") return;
 
-    if (status === "authenticated" && session) {
-      const redirectPath = session.user?.role === "admin" ? "/admin" : "/user";
-      router.replace(redirectPath);
-    } else if (status === "unauthenticated") {
-      router.replace("/auth/error");
-    }
+      if (status === "authenticated" && session) {
+        try {
+          // Verificar si el usuario está registrado
+          const response = await fetch('/api/auth/check-user');
+          const data = await response.json();
+          
+          if (data.isRegistered) {
+            // Si está registrado, redirigir según rol
+            const redirectPath = data.role === "admin" ? "/admin" : "/user";
+            router.replace(redirectPath);
+          } else {
+            // Si no está registrado, redirigir a completar perfil
+            router.replace("/user");
+          }
+        } catch (error) {
+          console.error("Error verificando estado del usuario:", error);
+          router.replace("/auth/error");
+        }
+      } else {
+        router.replace("/");
+      }
+    };
+
+    checkUserStatus();
   }, [session, status, router]);
 
   return (

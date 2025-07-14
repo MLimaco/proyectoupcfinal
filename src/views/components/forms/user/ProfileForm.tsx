@@ -17,6 +17,8 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useState } from "react";
+import { toast } from "@/components/ui/use-toast";
+import { useRouter } from "next/navigation";
 
 const formSchema = z.object({
   nombres: z.string().min(1, "Los nombres son obligatorios"),
@@ -44,15 +46,16 @@ interface ProfileFormProps {
   isLoading?: boolean;
 }
 
-export default function ProfileForm({ 
-  userData, 
+export default function ProfileForm({
+  userData,
   userEmail = "",
   onSubmit,
-  isLoading = false 
+  isLoading = false
 }: ProfileFormProps) {
   const [submitting, setSubmitting] = useState(false);
   const [charCount, setCharCount] = useState(userData?.biografia?.length || 0);
-  
+  const router = useRouter();
+
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: userData || {
@@ -67,12 +70,45 @@ export default function ProfileForm({
     },
   });
 
-  const handleSubmit = (data: FormValues) => {
+  const handleSubmit = async (data: FormValues) => {
     setSubmitting(true);
-    onSubmit(data);
-    setTimeout(() => {
-      setSubmitting(false);
-    }, 1000);
+
+    try {
+      // Llamar al onSubmit proporcionado por el componente padre (para mantener compatibilidad)
+      onSubmit(data);
+
+      // Además, enviar los datos al endpoint de la API
+      const response = await fetch('/api/users/update-profile', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          ...data,
+          haAceptadoPolitica: data.politicaPrivacidad
+        })
+      });
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        throw new Error(result.error || "Error al actualizar el perfil");
+      }
+
+      // Mostrar mensaje de éxito usando toast
+      toast.success("Tu información ha sido guardada correctamente.");
+
+      // La redirección se manejará según el flujo existente
+      // No añadimos una redirección aquí para no interferir con la funcionalidad existente
+
+    } catch (error) {
+      console.error("Error actualizando perfil:", error);
+      toast.error("No se pudo actualizar tu perfil. Intenta nuevamente.");
+    } finally {
+      setTimeout(() => {
+        setSubmitting(false);
+      }, 1000);
+    }
   };
 
   return (
@@ -89,7 +125,7 @@ export default function ProfileForm({
           Este correo fue proporcionado por tu autenticación con Google
         </p>
       </div>
-      
+
       <Form {...form}>
         <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4">
           <FormField
@@ -105,7 +141,7 @@ export default function ProfileForm({
               </FormItem>
             )}
           />
-          
+
           <FormField
             control={form.control}
             name="apellidos"
@@ -119,7 +155,7 @@ export default function ProfileForm({
               </FormItem>
             )}
           />
-          
+
           <FormField
             control={form.control}
             name="dni"
@@ -127,9 +163,9 @@ export default function ProfileForm({
               <FormItem>
                 <FormLabel>DNI</FormLabel>
                 <FormControl>
-                  <Input 
-                    placeholder="Ingresa tu número de DNI" 
-                    {...field} 
+                  <Input
+                    placeholder="Ingresa tu número de DNI"
+                    {...field}
                     maxLength={8}
                   />
                 </FormControl>
@@ -137,7 +173,7 @@ export default function ProfileForm({
               </FormItem>
             )}
           />
-          
+
           <FormField
             control={form.control}
             name="telefono"
@@ -145,9 +181,9 @@ export default function ProfileForm({
               <FormItem>
                 <FormLabel>Teléfono celular</FormLabel>
                 <FormControl>
-                  <Input 
-                    placeholder="Ej: 999888777" 
-                    {...field} 
+                  <Input
+                    placeholder="Ej: 999888777"
+                    {...field}
                     maxLength={9}
                   />
                 </FormControl>
@@ -155,7 +191,7 @@ export default function ProfileForm({
               </FormItem>
             )}
           />
-          
+
           <FormField
             control={form.control}
             name="correoLaureate"
@@ -163,10 +199,10 @@ export default function ProfileForm({
               <FormItem>
                 <FormLabel>Correo Laureate (opcional)</FormLabel>
                 <FormControl>
-                  <Input 
-                    placeholder="usuario@laureate.edu" 
+                  <Input
+                    placeholder="usuario@laureate.edu"
                     type="email"
-                    {...field} 
+                    {...field}
                   />
                 </FormControl>
                 <FormDescription>
@@ -176,7 +212,7 @@ export default function ProfileForm({
               </FormItem>
             )}
           />
-          
+
           {/* Nuevo campo: LinkedIn */}
           <FormField
             control={form.control}
@@ -194,7 +230,7 @@ export default function ProfileForm({
               </FormItem>
             )}
           />
-          
+
           {/* Nuevo campo: Biografía */}
           <FormField
             control={form.control}
@@ -203,8 +239,8 @@ export default function ProfileForm({
               <FormItem>
                 <FormLabel>Biografía <span className="text-destructive">*</span></FormLabel>
                 <FormControl>
-                  <Textarea 
-                    placeholder="Breve descripción de tu experiencia y habilidades" 
+                  <Textarea
+                    placeholder="Breve descripción de tu experiencia y habilidades"
                     className="min-h-[120px] resize-none"
                     {...field}
                     onChange={(e) => {
@@ -214,11 +250,10 @@ export default function ProfileForm({
                   />
                 </FormControl>
                 <div className="flex justify-end">
-                  <span className={`text-xs ${
-                    charCount < 10 ? 'text-destructive' : 
-                    charCount > 300 ? 'text-amber-500' : 
-                    'text-muted-foreground'
-                  }`}>
+                  <span className={`text-xs ${charCount < 10 ? 'text-destructive' :
+                    charCount > 300 ? 'text-amber-500' :
+                      'text-muted-foreground'
+                    }`}>
                     {charCount} caracteres
                   </span>
                 </div>
@@ -226,7 +261,7 @@ export default function ProfileForm({
               </FormItem>
             )}
           />
-          
+
           {/* Checkbox de política de privacidad */}
           <FormField
             control={form.control}
@@ -258,10 +293,10 @@ export default function ProfileForm({
               </FormItem>
             )}
           />
-          
-          <Button 
-            type="submit" 
-            className="w-full mt-4" 
+
+          <Button
+            type="submit"
+            className="w-full mt-4"
             disabled={isLoading || submitting}
           >
             {isLoading || submitting ? "Guardando..." : "Guardar información"}
